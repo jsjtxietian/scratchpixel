@@ -7,6 +7,7 @@
 #include <vector>
 #include <iostream>
 #include <cassert>
+#include <algorithm>
 
 #if defined __linux__ || defined __APPLE__
 // "Compiled for Linux
