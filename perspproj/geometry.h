@@ -131,8 +131,8 @@ class Vec3
 	// rather than using the more traditional form v.x, v.y, v.z. This useful
 	// when vectors are used in loops: the coordinates can be accessed with the
 	// loop index (e.g. v[i]).
-	const T& operator[] (uint8_t i) const { return (&x)[i]; }
-	T& operator[] (uint8_t i) { return (&x)[i]; }
+	const T &operator[](uint8_t i) const { return (&x)[i]; }
+	T &operator[](uint8_t i) { return (&x)[i]; }
 
 	Vec3 &normalize()
 	{
@@ -198,8 +198,8 @@ class Matrix44
 		x[3][3] = p;
 	}
 
-	const T* operator[] (uint8_t i) const { return x[i]; }
-	T *operator[] (uint8_t i) { return x[i]; }
+	const T *operator[](uint8_t i) const { return x[i]; }
+	T *operator[](uint8_t i) { return x[i]; }
 
 	Matrix44 operator*(const Matrix44 &v) const
 	{
@@ -286,6 +286,7 @@ class Matrix44
 		dst.y = b / w;
 		dst.z = c / w;
 	}
+	
 	// This method needs to be used for vector-matrix multiplication. Look at the differences
 	// with the previous method (to compute a point-matrix multiplication). We don't use
 	// the coefficients in the matrix that account for translation (x[3][0], x[3][1], x[3][2])
