@@ -124,11 +124,7 @@ bool rayTriangleIntersect(
 }
 
 int main(int argc, char **argv)
-{
-    Vec3f v0(-1, -1, -5);
-    Vec3f v1(1, -1, -5);
-    Vec3f v2(0, 1, -5);
-
+{ 
     const uint32_t width = 640;
     const uint32_t height = 480;
     Vec3f cols[3] = {{0.6, 0.4, 0.1}, {0.1, 0.5, 0.3}, {0.1, 0.3, 0.7}};
