@@ -284,7 +284,7 @@ int main()
     ofs.open("./output.ppm");
     ofs << "P6\n"
         << imageWidth << " " << imageHeight << "\n255\n";
-    ofs.write((char *)frameBuffer, imageWidth * imageWidth * 3);
+    ofs.write((char *)frameBuffer, imageWidth * imageHeight * 3);
     ofs.close();
 
     delete[] frameBuffer;

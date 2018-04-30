@@ -6,6 +6,7 @@
 #include <chrono>
 #include <sstream>
 #include <memory>
+#include <algorithm>
 
 static const float inchToMm = 25.4;
 enum FitResolutionGate
@@ -351,13 +352,8 @@ int main(int argc, char **argv)
     ofs.open("./output.ppm");
     ofs << "P6\n"
         << imageWidth << " " << imageHeight << "\n255\n";
-    ofs.write((char *)frameBuffer, imageWidth * imageWidth * 3);
+    ofs.write((char *)frameBuffer, imageWidth * imageHeight * 3);
     ofs.close();
-
-    for (int a = 0 ; a < imageHeight ; a++)
-    {
-        std::cerr << frameBuffer[a] << std::endl;
-    }
 
     delete[] frameBuffer;
     delete[] depthBuffer;
