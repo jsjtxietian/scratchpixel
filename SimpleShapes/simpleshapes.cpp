@@ -119,6 +119,34 @@ class Sphere : public Object
         return true;
     }
 
+    //http://www.scratchapixel.com/lessons/3d-basic-rendering/transforming-objects-using-matrices
+    // bool intersect(const Vec3f &orig, const Vec3f &dir, float &t) const
+    // {
+    //     Vec3f origObject, dirObject;
+    //     worldToObject.multVecMatrix(orig, origObject);
+    //     worldToObject.multDirMatrix(dir, dirObject);
+    //     float t0, t1; // solutions for t if the ray intersects
+    //     // analytic solution
+    //     float a = dirObject.dotProduct(dirObject);
+    //     float b = 2 * dirObject.dotProduct(origObject);
+    //     float c = origObject.dotProduct(origObject) - 1; // radius = 1 and radius^2 = 1
+    //     if (!solveQuadratic(a, b, c, t0, t1))
+    //         return false;
+    //     if (t0 > t1)
+    //         std::swap(t0, t1);
+
+    //     if (t0 < 0)
+    //     {
+    //         t0 = t1; // if t0 is negative, let's use t1 instead
+    //         if (t0 < 0)
+    //             return false; // both t0 and t1 are negative
+    //     }
+
+    //     t = t0;
+
+    //     return true;
+    // }
+
     void getSurfaceData(const Vec3f &Phit, Vec3f &Nhit, Vec2f &tex) const
     {
         Nhit = Phit - center;
