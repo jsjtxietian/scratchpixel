@@ -96,6 +96,10 @@ class Vec3
 	{
 		return Vec3(x * r, y * r, z * r);
 	}
+	Vec3 operator/(const T &r) const
+	{
+		return Vec3(x / r, y / r, z / r);
+	}
 	Vec3 operator*(const Vec3 &v) const
 	{
 		return Vec3(x * v.x, y * v.y, z * v.z);
@@ -112,6 +116,11 @@ class Vec3
 	Vec3 &operator*=(const T &r)
 	{
 		x *= r, y *= r, z *= r;
+		return *this;
+	}
+	Vec3 &operator+=(const Vec3<T> &v)
+	{
+		x += v.x, y += v.y, z += v.z;
 		return *this;
 	}
 	Vec3 crossProduct(const Vec3<T> &v) const
