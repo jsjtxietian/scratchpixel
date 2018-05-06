@@ -1,6 +1,6 @@
 # code from www.scratchapixel.com
 
 ## more
-* 自己实现矩阵求逆
+* 搞清数学原理 尤其矩阵变换
+* 看数学基础、颜色空间
 * 一些练习 反锯齿
-* 其他章节内容
