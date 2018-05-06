@@ -1,5 +1,5 @@
-//A simple program to demonstrate some basic shading techniques
-//c++ -o shading shading.cpp -std=c++11 -O3
+// A simple program to demonstrate some basic shading techniques
+// c++ -o shading shading.cpp -std=c++11 -O3
 
 #include <cstdio>
 #include <cstdlib>
@@ -49,27 +49,28 @@ struct Options
 
 enum MaterialType
 {
-    kDiffuse,
-    kReflection,
-    kReflectionAndRefraction
+    kPhong
 };
 
 class Object
 {
   public:
-    //Setting up the object-to-world and world-to-object matrix
+    // Setting up the object-to-world and world-to-object matrix
+
     Object(const Matrix44f &o2w) : objectToWorld(o2w), worldToObject(o2w.inverse()) {}
     virtual ~Object() {}
     virtual bool intersect(const Vec3f &, const Vec3f &, float &, uint32_t &, Vec2f &) const = 0;
     virtual void getSurfaceProperties(const Vec3f &, const Vec3f &, const uint32_t &, const Vec2f &, Vec3f &, Vec2f &) const = 0;
     Matrix44f objectToWorld, worldToObject;
-    const char *name;
-    MaterialType type = kDiffuse;
-    float ior = 1;
+    MaterialType type = kPhong;
     Vec3f albedo = 0.18;
+    float Kd = 0.8; // phong model diffuse weight
+    float Ks = 0.2; // phong model specular weight
+    float n = 10;   // phong specular exponent
 };
 
-//Compute the roots of a quadratic equation
+// Compute the roots of a quadratic equation
+
 bool solveQuadratic(const float &a, const float &b, const float &c, float &x0, float &x1)
 {
     float discr = b * b - 4 * a * c;
@@ -90,17 +91,18 @@ bool solveQuadratic(const float &a, const float &b, const float &c, float &x0, f
 }
 
 // Sphere class. A sphere type object
+
 class Sphere : public Object
 {
   public:
     Sphere(const Matrix44f &o2w, const float &r) : Object(o2w), radius(r), radius2(r * r)
     {
         o2w.multVecMatrix(Vec3f(0), center);
-        this->name = "sphere";
     }
-    //Ray-sphere intersection test
-    bool
-    intersect(
+
+    // Ray-sphere intersection test
+
+    bool intersect(
         const Vec3f &orig,
         const Vec3f &dir,
         float &tNear,
@@ -130,7 +132,9 @@ class Sphere : public Object
 
         return true;
     }
-    //Set surface data such as normal and texture coordinates at a given point on the surface
+
+    // Set surface data such as normal and texture coordinates at a given point on the surface
+
     void getSurfaceProperties(
         const Vec3f &hitPoint,
         const Vec3f &viewDirection,
@@ -198,7 +202,6 @@ class TriangleMesh : public Object
         std::unique_ptr<Vec2f[]> &st) : Object(o2w),
                                         numTris(0)
     {
-        this->name = "trianglemesh";
         uint32_t k = 0, maxVertIndex = 0;
         // find out how many triangles we need to create for this mesh
         for (uint32_t i = 0; i < nfaces; ++i)
@@ -215,7 +218,9 @@ class TriangleMesh : public Object
         P = std::unique_ptr<Vec3f[]>(new Vec3f[maxVertIndex]);
         for (uint32_t i = 0; i < maxVertIndex; ++i)
         {
-            //Transforming vertices to world space
+
+            // Transforming vertices to world space
+
             objectToWorld.multVecMatrix(verts[i], P[i]);
         }
 
@@ -224,7 +229,9 @@ class TriangleMesh : public Object
         uint32_t l = 0;
         N = std::unique_ptr<Vec3f[]>(new Vec3f[numTris * 3]);
         sts = std::unique_ptr<Vec2f[]>(new Vec2f[numTris * 3]);
-        //  Computing the transpse of the object-to-world inverse matrix
+
+        // Computing the transpse of the object-to-world inverse matrix
+
         Matrix44f transformNormals = worldToObject.transpose();
         // generate the triangle index array and set normals and st coordinates
         for (uint32_t i = 0, k = 0; i < nfaces; ++i)
@@ -234,7 +241,9 @@ class TriangleMesh : public Object
                 trisIndex[l] = vertsIndex[k];
                 trisIndex[l + 1] = vertsIndex[k + j + 1];
                 trisIndex[l + 2] = vertsIndex[k + j + 2];
-                //Transforming normals
+
+                // Transforming normals
+
                 transformNormals.multDirMatrix(normals[k], N[l]);
                 transformNormals.multDirMatrix(normals[k + j + 1], N[l + 1]);
                 transformNormals.multDirMatrix(normals[k + j + 2], N[l + 2]);
@@ -376,7 +385,8 @@ TriangleMesh *loadPolyMeshFromFile(const char *file, const Matrix44f &o2w)
     return nullptr;
 }
 
-//Light base class
+// Light base class
+
 class Light
 {
   public:
@@ -388,7 +398,8 @@ class Light
     Matrix44f lightToWorld;
 };
 
-//Distant light
+// Distant light
+
 class DistantLight : public Light
 {
     Vec3f dir;
@@ -407,7 +418,8 @@ class DistantLight : public Light
     }
 };
 
-//Point light
+// Point light
+
 class PointLight : public Light
 {
     Vec3f pos;
@@ -457,8 +469,6 @@ bool trace(
         Vec2f uv;
         if (objects[k]->intersect(orig, dir, tNear, index, uv) && tNear < isect.tNear)
         {
-            if (rayType == kShadowRay && objects[k]->type == kReflectionAndRefraction)
-                continue;
             isect.hitObject = objects[k].get();
             isect.tNear = tNear;
             isect.index = index;
@@ -470,12 +480,14 @@ bool trace(
 }
 
 // Compute reflection direction
+
 Vec3f reflect(const Vec3f &I, const Vec3f &N)
 {
     return I - 2 * I.dotProduct(N) * N;
 }
 
-//Compute refraction direction
+// Compute refraction direction
+
 Vec3f refract(const Vec3f &I, const Vec3f &N, const float &ior)
 {
     float cosi = clamp(-1, 1, I.dotProduct(N));
@@ -495,7 +507,8 @@ Vec3f refract(const Vec3f &I, const Vec3f &N, const float &ior)
     return k < 0 ? 0 : eta * I + (eta * cosi - sqrtf(k)) * n;
 }
 
-//Evaluate Fresnel equation (ration of reflected light for a given incident direction and surface normal)
+// Evaluate Fresnel equation (ration of reflected light for a given incident direction and surface normal)
+
 void fresnel(const Vec3f &I, const Vec3f &N, const float &ior, float &kr)
 {
     float cosi = clamp(-1, 1, I.dotProduct(N));
@@ -541,70 +554,42 @@ Vec3f castRay(
     IsectInfo isect;
     if (trace(orig, dir, objects, isect))
     {
-        //Evaluate surface properties (P, N, texture coordinates, etc.)
+
+        // Evaluate surface properties (P, N, texture coordinates, etc.)
+
         Vec3f hitPoint = orig + dir * isect.tNear;
         Vec3f hitNormal;
         Vec2f hitTexCoordinates;
         isect.hitObject->getSurfaceProperties(hitPoint, dir, isect.index, isect.uv, hitNormal, hitTexCoordinates);
         switch (isect.hitObject->type)
         {
-        //Simulate diffuse object
-        case kDiffuse:
+
+            // Simulate diffuse object
+
+        case kPhong:
         {
-            //Light loop (loop over all lights in the scene and accumulate their contribution)
+
+            // Light loop (loop over all lights in the scene and accumulate their contribution)
+
+            Vec3f diffuse = 0, specular = 0;
             for (uint32_t i = 0; i < lights.size(); ++i)
             {
                 Vec3f lightDir, lightIntensity;
                 IsectInfo isectShad;
                 lights[i]->illuminate(hitPoint, lightDir, lightIntensity, isectShad.tNear);
+
                 bool vis = !trace(hitPoint + hitNormal * options.bias, -lightDir, objects, isectShad, kShadowRay);
-                // compute the pattern
-                float angle = deg2rad(45);
-                float s = hitTexCoordinates.x * cos(angle) - hitTexCoordinates.y * sin(angle);
-                float t = hitTexCoordinates.y * cos(angle) + hitTexCoordinates.x * sin(angle);
-                float scaleS = 20, scaleT = 20;
-                //float pattern = (cos(hitTexCoordinates.y * 2 * M_PI * scaleT) * sin(hitTexCoordinates.x * 2 * M_PI * scaleS) + 1) * 0.5; // isect.hitObject->albedo
-                //float pattern = (modulo(s * scaleS) < 0.5) ^ (modulo(t * scaleT) < 0.5);
-                
-                //TODO change it for pen 
-                //float pattern = (modulo(s * scaleS) < 0.5);
-                float pattern = 0.5;
-                hitColor += vis * pattern * lightIntensity * std::max(0.f, hitNormal.dotProduct(-lightDir));
-            }
-            break;
-        }
-        //Simulate reflection only
-        case kReflection:
-        {
-            Vec3f R = reflect(dir, hitNormal);
-            R.normalize(); 
-            //TODO add one here
-            hitColor += castRay(hitPoint + hitNormal * options.bias, R, objects, lights, options, depth + 1);
-            break;
-        }
-        //Simulate transparent object (reflection/transmission/fresnel)
-        case kReflectionAndRefraction:
-        {
-            Vec3f refractionColor = 0, reflectionColor = 0;
-            // compute fresnel
-            float kr;
-            fresnel(dir, hitNormal, isect.hitObject->ior, kr);
-            bool outside = dir.dotProduct(hitNormal) < 0;
-            Vec3f bias = options.bias * hitNormal;
-            // compute refraction if it is not a case of total internal reflection
-            if (kr < 1)
-            {
-                Vec3f refractionDirection = refract(dir, hitNormal, isect.hitObject->ior).normalize();
-                Vec3f refractionRayOrig = outside ? hitPoint - bias : hitPoint + bias;
-                refractionColor = castRay(refractionRayOrig, refractionDirection, objects, lights, options, depth + 1);
-            }
 
-            Vec3f reflectionDirection = reflect(dir, hitNormal).normalize();
-            Vec3f reflectionRayOrig = outside ? hitPoint + bias : hitPoint - bias;
-            reflectionColor = castRay(reflectionRayOrig, reflectionDirection, objects, lights, options, depth + 1);
+                // compute the diffuse component
+                diffuse += vis * isect.hitObject->albedo * lightIntensity * std::max(0.f, hitNormal.dotProduct(-lightDir));
 
-            // mix the two
-            hitColor += reflectionColor * kr + refractionColor * (1 - kr);
+                // compute the specular component
+                // what would be the ideal reflection direction for this light ray
+                Vec3f R = reflect(lightDir, hitNormal);
+                specular += vis * lightIntensity * std::pow(std::max(0.f, R.dotProduct(-dir)), isect.hitObject->n);
+            }
+            hitColor = diffuse * isect.hitObject->Kd + specular * isect.hitObject->Ks;
+            //std::cerr << hitColor << std::endl;
             break;
         }
         default:
@@ -619,8 +604,10 @@ Vec3f castRay(
     return hitColor;
 }
 
-//he main render function. This where we iterate over all pixels in the image, generate primary rays and
-//cast these rays into the scene. The content of the framebuffer is saved to a file.
+// The main render function. This where we iterate over all pixels in the image, generate
+// primary rays and cast these rays into the scene. The content of the framebuffer is
+// saved to a file.
+
 void render(
     const Options &options,
     const std::vector<std::unique_ptr<Object>> &objects,
@@ -666,8 +653,10 @@ void render(
     ofs.close();
 }
 
-//In the main function of the program, we create the scene (create objects and lights) as well as set the options for the render
-//(image widht and height, maximum recursion depth, field-of-view, etc.). We then call the render function().
+// In the main function of the program, we create the scene (create objects and lights)
+// as well as set the options for the render (image widht and height, maximum recursion
+// depth, field-of-view, etc.). We then call the render function().
+
 int main(int argc, char **argv)
 {
     // loading gemetry
@@ -676,113 +665,42 @@ int main(int argc, char **argv)
     std::vector<std::unique_ptr<Light>> lights;
     Options options;
 
-#if 1
-    // glass and pen example
-    // setting up options
-    options.fov = 36.87; 
-    options.maxDepth = 10; 
-    options.bias = 0.001; 
-    options.width = 1024; 
-    options.height = 747; 
-    options.cameraToWorld = Matrix44f(-0.972776, 0, -0.231748, 0, -0.114956, 0.8683, 0.482536, 0, 0.201227, 0.49604, -0.844661, 0, 6.696465, 22.721296, -30.097976, 1); 
- 
-    TriangleMesh *mesh1 = loadPolyMeshFromFile("./backdrop.geo", Matrix44f::kIdentity); 
-    if (mesh1 != nullptr) { 
-        mesh1->type = kDiffuse; 
-        objects.push_back(std::unique_ptr<Object>(mesh1)); 
-    } 
- 
-    TriangleMesh *mesh3 = loadPolyMeshFromFile("./cylinder.geo", Matrix44f::kIdentity); 
-    if (mesh3 != nullptr) { 
-        mesh3->type = kReflectionAndRefraction; 
-        mesh3->ior = 1.5; 
-        objects.push_back(std::unique_ptr<Object>(mesh3)); 
-    } 
- 
-    TriangleMesh *mesh4 = loadPolyMeshFromFile("./pen.geo", Matrix44f::kIdentity); 
-    if (mesh4 != nullptr) { 
-        mesh4->type = kDiffuse; 
-        mesh4->albedo = 0.18; 
-        mesh4->smoothShading = false; 
-        objects.push_back(std::unique_ptr<Object>(mesh4)); 
-    } 
- 
-    Matrix44f xform1; 
-    xform1[3][0] = -1.2; 
-    xform1[3][1] = 6; 
-    xform1[3][2] = -3; 
-    Sphere *sph1 = new Sphere(xform1, 5); 
-    sph1->type = kReflectionAndRefraction;
-
-    Matrix44f l2w(11.146836, -5.781569, -0.0605886, 0, -1.902827, -3.543982, -11.895445, 0, 5.459804, 10.568624, -4.02205, 0, 0, 0, 0, 1);
-    
-
-#elif 0
-    // simple plane example (patterns)
-    options.fov = 36.87;
-    options.width = 1024;
-    options.height = 747;
-    options.cameraToWorld = Matrix44f(0.707107, 0, -0.707107, 0, -0.331295, 0.883452, -0.331295, 0, 0.624695, 0.468521, 0.624695, 0, 28, 21, 28, 1);
-
-    TriangleMesh *mesh = loadPolyMeshFromFile("./plane.geo", Matrix44f::kIdentity);
-    if (mesh != nullptr)
-    {
-        mesh->type = kDiffuse;
-        mesh->albedo = 0.18;
-        mesh->smoothShading = false;
-        objects.push_back(std::unique_ptr<Object>(mesh));
-    }
-    Matrix44f l2w(11.146836, -5.781569, -0.0605886, 0, -1.902827, -3.543982, -11.895445, 0, 5.459804, 10.568624, -4.02205, 0, 0, 0, 0, 1);
-#elif 0
-    // multiple glasses example
-    options.fov = 36.87;
-    options.width = 1024;
-    options.height = 747;
-    options.cameraToWorld = Matrix44f(0.999945, 0, 0.0104718, 0, 0.00104703, 0.994989, -0.0999803, 0, -0.0104193, 0.0999858, 0.994934, 0, -0.978596, 17.911879, 75.483369, 1);
-
-    TriangleMesh *mesh = loadPolyMeshFromFile("./glasses.geo", Matrix44f::kIdentity);
-    if (mesh != nullptr)
-    {
-        mesh->type = kReflectionAndRefraction;
-        mesh->ior = 1.3;
-        objects.push_back(std::unique_ptr<Object>(mesh));
-    }
-
-    TriangleMesh *mesh1 = loadPolyMeshFromFile("./backdrop1.geo", Matrix44f::kIdentity);
-    if (mesh1 != nullptr)
-    {
-        mesh1->type = kDiffuse;
-        mesh1->albedo = 0.18;
-        objects.push_back(std::unique_ptr<Object>(mesh1));
-    }
-
-    Matrix44f l2w(0.95292, 0.289503, 0.0901785, 0, -0.0960954, 0.5704, -0.815727, 0, -0.287593, 0.768656, 0.571365, 0, 0, 0, 0, 1);
-#else
     // aliasing example
     options.fov = 36.87;
     options.width = 1024;
     options.height = 747;
-    options.cameraToWorld = Matrix44f(0.999945, 0, 0.0104718, 0, 0.00104703, 0.994989, -0.0999803, 0, -0.0104193, 0.0999858, 0.994934, 0, -0.978596, 17.911879, 75.483369, 1);
+    options.cameraToWorld[3][2] = 12;
+    options.cameraToWorld[3][1] = 1;
 
     Matrix44f xform;
-    xform[0][0] = 10;
-    xform[1][1] = 10;
-    xform[2][2] = 10;
-    xform[3][2] = -40;
+    xform[0][0] = 1;
+    xform[1][1] = 1;
+    xform[2][2] = 1;
     TriangleMesh *mesh = loadPolyMeshFromFile("./plane.geo", xform);
     if (mesh != nullptr)
     {
-        mesh->type = kDiffuse;
-        mesh->albedo = 0.18;
         mesh->smoothShading = false;
         objects.push_back(std::unique_ptr<Object>(mesh));
     }
+
+    float w[5] = {0.04, 0.08, 0.1, 0.15, 0.2};
+    for (int i = -4, n = 2, k = 0; i <= 4; i += 2, n *= 5, k++)
+    {
+        Matrix44f xformSphere;
+        xformSphere[3][0] = i;
+        xformSphere[3][1] = 1;
+        Sphere *sph = new Sphere(xformSphere, 0.9);
+        sph->n = n;
+        sph->Ks = w[k];
+        objects.push_back(std::unique_ptr<Object>(sph));
+    }
+
     Matrix44f l2w(11.146836, -5.781569, -0.0605886, 0, -1.902827, -3.543982, -11.895445, 0, 5.459804, 10.568624, -4.02205, 0, 0, 0, 0, 1);
-#endif
-    lights.push_back(std::unique_ptr<Light>(new DistantLight(l2w, 1, 1)));
+    lights.push_back(std::unique_ptr<Light>(new DistantLight(l2w, 1, 5)));
 
     // finally, render
     render(options, objects, lights);
 
     return 0;
 }
+
