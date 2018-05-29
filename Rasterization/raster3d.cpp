@@ -2,6 +2,7 @@
 //c++ -o raster3d raster3d.cpp  -std=c++11 -O3
 
 #include "../include/geometry.h"
+#include "../include/svpng.inc"
 #include <fstream>
 #include <chrono>
 
@@ -280,12 +281,22 @@ int main()
     std::cerr << "Wall passed time:  " << passedTime << " ms" << std::endl;
 
     //Store the result of the framebuffer to a PPM file (Photoshop reads PPM files).
-    std::ofstream ofs;
-    ofs.open("./output.ppm");
-    ofs << "P6\n"
-        << imageWidth << " " << imageHeight << "\n255\n";
-    ofs.write((char *)frameBuffer, imageWidth * imageHeight * 3);
-    ofs.close();
+    
+    // std::ofstream ofs;
+    // ofs.open("./output.ppm");
+    // ofs << "P6\n"
+    //     << imageWidth << " " << imageHeight << "\n255\n";
+    // ofs.write((char *)frameBuffer, imageWidth * imageHeight * 3);
+    // ofs.close();
+    unsigned char rgb[imageHeight * imageWidth * 3], *p = rgb;
+    for(int ttt= 0 ; ttt < imageWidth * imageHeight ; ttt++)
+    {
+        *p++ = frameBuffer[ttt].x;
+        *p++ = frameBuffer[ttt].y;
+        *p++ = frameBuffer[ttt].z;
+    }
+    FILE* fp = fopen("output.png","wb");
+    svpng(fp,imageWidth,imageHeight,rgb,0);
 
     delete[] frameBuffer;
     delete[] depthBuffer;
